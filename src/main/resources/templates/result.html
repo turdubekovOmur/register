@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Not matched transactions</title>
+    <link href="css.css" rel="stylesheet" type="css">
+
+
+</head>
+<body>
+
+<div>
+    <h2 align="right">Не найденные транзакции в РБС листе:</h2>
+    <table class="table" align="right">
+        <tr>
+            <th>Реквизит</th>
+            <th>Сумма</th>
+        </tr>
+        <tr th:each="notMatchedRBS: ${notMatchedRBS}">
+            <td th:text="${notMatchedRBS.account}"></td>
+            <td th:text="${notMatchedRBS.sum}"></td>
+        </tr>
+    </table>
+
+    <!--<hr>-->
+
+    <h2 align="left">Не найденные транзакции в ПАРТНЕР листе:</h2>
+    <table align="left" class="table2">
+        <tr>
+            <th>Реквизит</th>
+            <th>Сумма</th>
+        </tr>
+        <tr th:each="notMatchedPartner: ${notMatchedPartner}">
+            <td th:text="${notMatchedPartner.account}"></td>
+            <td th:text="${notMatchedPartner.sum}"></td>
+        </tr>
+    </table>
+</div>
+
+
+
+</body>
+</html>
