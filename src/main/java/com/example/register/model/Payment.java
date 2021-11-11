@@ -1,16 +1,19 @@
 package com.example.register.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
 
 @Component
 @Data
-public class PaymentPartner{
+@AllArgsConstructor
+@NoArgsConstructor
+public class Payment {
     private double sum;
     private String account;
     private boolean isExist;
-
-    public int hashCode() { return String.format("%d,%f", getAccount(), getSum()).hashCode();  }
+    private String date;
 
 }

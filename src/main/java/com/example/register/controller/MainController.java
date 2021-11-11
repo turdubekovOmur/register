@@ -1,9 +1,10 @@
 package com.example.register.controller;
 
-import com.example.register.model.PaymentPartner;
-import com.example.register.model.PaymentRBS;
-import com.example.register.service.PartnerService;
-import com.example.register.service.RbsService;
+import com.example.register.model.Payment;
+import com.example.register.service.optima.OptimaPartnerService;
+import com.example.register.service.optima.OptimaRbsService;
+import com.example.register.service.pay24.Pay24PartnerService;
+import com.example.register.service.pay24.Pay24RbsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,57 +23,59 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MainController {
 
-    private final PartnerService partnerService;
-    private final RbsService rbsService;
+    private final OptimaRbsService optimaRbsService;
+    private final OptimaPartnerService optimaPartnerService;
+    private final Pay24RbsService pay24RbsService;
+    private final Pay24PartnerService pay24PartnerService;
 
-    private List<PaymentRBS> rbsList;
-    private List<PaymentPartner> partnerList;
 
-    private List<PaymentRBS> notMatchedRBS;
-    private List<PaymentPartner> notMatchedPartner;
+    private List<Payment> rbsList;
+    private List<Payment> partnerList;
+
+    private List<Payment> notMatchedRBS;
+    private List<Payment> notMatchedPartner;
 
     @PostMapping("/import")
-    public String mapReapExcel(@RequestParam("rbs_file") MultipartFile rbsFile, @RequestParam("partner_file") MultipartFile partnerFile) throws IOException {
-        partnerList = partnerService.read(partnerFile);
-        rbsList = rbsService.read(rbsFile);
+    public String mapReapExcel(@RequestParam("rbs_file") MultipartFile rbsFile, @RequestParam("partner_file") MultipartFile partnerFile, @RequestParam("partners") String partnerName) throws IOException {
+        switch (partnerName) {
+            case "optima":
+                partnerList = optimaPartnerService.read(partnerFile);
+                rbsList = optimaRbsService.read(rbsFile);
+                break;
+            case "pay24":
+                rbsList = pay24RbsService.read(rbsFile);
+                partnerList = pay24PartnerService.read(partnerFile);
+                break;
 
-        log.info("Partner size: {}", partnerList.size());
+        }
 
-        log.info("======================================");
-
-        log.info("RBS size: {}", rbsList.size());
-
+        log.info("Название партнера: {}", partnerName);
+        log.info("Размер партнер листа: {}", partnerList.size());
+        log.info("Размер рбс листа: {}", rbsList.size());
         log.info("Start to compare");
         compare();
         return "redirect:/list";
     }
 
     @GetMapping("/list")
-    public String result(Model model){
+    public String result(Model model) {
         model.addAttribute("notMatchedPartner", notMatchedPartner);
         model.addAttribute("notMatchedRBS", notMatchedRBS);
-
         return "result";
     }
 
-
+    // TODO:СДЕЛАТЬ ОТДЕЛЬНЫЙ ПАРСИНГ КАЖДОГО СТОЛБЦА ДЛЯ ГРИНКИ!
     public void compare() {
-        log.info("ТРАНЗАКЦИИ КОТОРЫЕ НЕ СОВПАЛИ:");
-        try {
-            for (PaymentRBS rbs : rbsList) {
-                for (PaymentPartner partner : partnerList) {
-                    if (partner.getAccount().equals(rbs.getAccount()) && partner.getSum() == rbs.getSum()) {
-                        rbs.setExist(true);
-                        partner.setExist(true);
-                    }
+
+        for (Payment partner : partnerList) {
+            for (Payment rbs : rbsList) {
+                if (rbs.getSum() == partner.getSum()) {
+                    rbs.setExist(true);
+                    partner.setExist(true);
                 }
             }
-        } catch (OutOfMemoryError | ConcurrentModificationException exception) {
-            exception.printStackTrace();
         }
-
-        notMatchedRBS = rbsList.stream().filter(r -> !r.isExist()).collect(Collectors.toList());
-        notMatchedPartner = partnerList.stream().filter(p -> !p.isExist()).collect(Collectors.toList());
-
+        notMatchedRBS = rbsList.stream().filter(rbs -> !rbs.isExist()).collect(Collectors.toList());
+        notMatchedPartner = partnerList.stream().filter(partner -> !partner.isExist()).collect(Collectors.toList());
     }
 }
